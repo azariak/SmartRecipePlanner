@@ -1,0 +1,45 @@
+{
+  "expo": {
+    "name": "Forage",
+    "slug": "forage",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "forage",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0A0A08",
+    "splash": {
+      "backgroundColor": "#0A0A08",
+      "resizeMode": "contain",
+      "image": "./assets/splash-icon.png"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Forage uses the camera to photograph the ingredients you have so it can suggest recipes.",
+        "NSPhotoLibraryUsageDescription": "Forage lets you pick a photo of your ingredients to suggest recipes."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0A0A08",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Forage lets you pick a photo of your ingredients to suggest recipes.",
+          "cameraPermission": "Forage uses the camera to photograph the ingredients you have so it can suggest recipes."
+        }
+      ]
+    ]
+  }
+}
