@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -10,12 +10,14 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useIsFocused } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
+import { CameraView, useCameraPermissions, type CameraType } from 'expo-camera';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { colors, fonts } from '../theme';
 import type { RootStackParamList } from '../types';
 import { useRecipes } from '../state/RecipeStore';
-import { Logo, MonoLabel, MonoLink, PrimaryButton } from '../components/ui';
+import { Logo, MonoLink, PrimaryButton } from '../components/ui';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Capture'>;
 
@@ -30,44 +32,68 @@ function guessMime(uri: string, provided?: string | null): string {
 
 export default function CaptureScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
+  const isFocused = useIsFocused();
   const { photo, detecting, detectError, ingredients, setPhoto, retake } = useRecipes();
   const [busy, setBusy] = useState(false);
+  const [facing, setFacing] = useState<CameraType>('back');
+  const [permission, requestPermission] = useCameraPermissions();
+  const cameraRef = useRef<CameraView>(null);
 
   const scanned = !!photo && !detecting && ingredients.length > 0;
-  const notScanned = !photo && !detecting;
+  const cameraGranted = !!permission?.granted;
+  // Show the live feed only when there's no captured photo and the screen is active.
+  const showLiveCamera = !photo && !detecting && isFocused && cameraGranted;
 
-  async function handlePick(source: 'camera' | 'library') {
+  // Ask for camera access once so the viewfinder can go live.
+  useEffect(() => {
+    if (permission && !permission.granted && permission.canAskAgain) {
+      requestPermission();
+    }
+  }, [permission, requestPermission]);
+
+  async function commitPhoto(uri: string, base64: string, mimeType: string) {
+    await setPhoto({ uri, base64, mimeType });
+  }
+
+  async function capturePhoto() {
     try {
       setBusy(true);
-      if (source === 'camera') {
-        const perm = await ImagePicker.requestCameraPermissionsAsync();
-        if (!perm.granted) {
-          Alert.alert('Camera access needed', 'Enable camera access to photograph your ingredients.');
-          return;
+      if (!cameraGranted) {
+        const res = await requestPermission();
+        if (!res.granted) {
+          Alert.alert('Camera access needed', 'Enable camera access, or use “Upload a photo”.');
         }
+        return;
       }
-      const opts: ImagePicker.ImagePickerOptions = {
+      const pic = await cameraRef.current?.takePictureAsync({ quality: 0.5, base64: true });
+      if (!pic?.base64) {
+        Alert.alert('Could not capture', 'Please try again or upload a photo.');
+        return;
+      }
+      await commitPhoto(pic.uri, pic.base64, 'image/jpeg');
+    } catch (e: any) {
+      Alert.alert('Camera error', e?.message ?? 'Please try again.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function uploadPhoto() {
+    try {
+      setBusy(true);
+      const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
         base64: true,
         quality: 0.5,
         allowsEditing: false,
-      };
-      const result =
-        source === 'camera'
-          ? await ImagePicker.launchCameraAsync(opts)
-          : await ImagePicker.launchImageLibraryAsync(opts);
-
+      });
       if (result.canceled) return;
       const asset = result.assets[0];
       if (!asset?.base64) {
         Alert.alert('Could not read that image', 'Please try a different photo.');
         return;
       }
-      await setPhoto({
-        uri: asset.uri,
-        base64: asset.base64,
-        mimeType: guessMime(asset.uri, asset.mimeType),
-      });
+      await commitPhoto(asset.uri, asset.base64, guessMime(asset.uri, asset.mimeType));
     } catch (e: any) {
       Alert.alert('Something went wrong', e?.message ?? 'Please try again.');
     } finally {
@@ -97,17 +123,38 @@ export default function CaptureScreen({ navigation }: Props) {
 
       {/* viewfinder */}
       <View style={styles.viewfinder}>
-        <View style={[styles.corner, styles.tl]} />
-        <View style={[styles.corner, styles.tr]} />
-        <View style={[styles.corner, styles.bl]} />
-        <View style={[styles.corner, styles.br]} />
+        {showLiveCamera ? (
+          <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing={facing} />
+        ) : null}
 
         {photo ? (
           <Image source={{ uri: photo.uri }} style={StyleSheet.absoluteFill} resizeMode="cover" />
         ) : null}
 
-        {notScanned ? (
-          <Text style={styles.feedText}>[ CAMERA FEED ]{'\n'}POINT AT YOUR INGREDIENTS</Text>
+        {/* corner brackets sit above the feed */}
+        <View style={[styles.corner, styles.tl]} />
+        <View style={[styles.corner, styles.tr]} />
+        <View style={[styles.corner, styles.bl]} />
+        <View style={[styles.corner, styles.br]} />
+
+        {!photo && !showLiveCamera && !detecting ? (
+          <Text style={styles.feedText}>
+            [ CAMERA FEED ]{'\n'}
+            {permission && !permission.granted
+              ? 'ALLOW CAMERA OR UPLOAD A PHOTO'
+              : 'POINT AT YOUR INGREDIENTS'}
+          </Text>
+        ) : null}
+
+        {/* flip control while the live feed is up */}
+        {showLiveCamera ? (
+          <Pressable
+            onPress={() => setFacing((f) => (f === 'back' ? 'front' : 'back'))}
+            hitSlop={10}
+            style={styles.flip}
+          >
+            <Text style={styles.flipText}>⟲ FLIP</Text>
+          </Pressable>
         ) : null}
 
         {detecting ? (
@@ -138,10 +185,7 @@ export default function CaptureScreen({ navigation }: Props) {
         </View>
       ) : null}
 
-      {/* detect error */}
-      {detectError && !detecting ? (
-        <Text style={styles.errorText}>{detectError}</Text>
-      ) : null}
+      {detectError && !detecting ? <Text style={styles.errorText}>{detectError}</Text> : null}
 
       {/* actions */}
       {!scanned ? (
@@ -151,7 +195,7 @@ export default function CaptureScreen({ navigation }: Props) {
               accessibilityRole="button"
               accessibilityLabel="Take photo"
               disabled={busy || detecting}
-              onPress={() => handlePick('camera')}
+              onPress={capturePhoto}
               style={({ pressed }) => [
                 styles.captureBtn,
                 pressed && { transform: [{ scale: 0.94 }], borderColor: colors.ink },
@@ -165,7 +209,7 @@ export default function CaptureScreen({ navigation }: Props) {
             label="Upload a photo"
             glyph="↑"
             loading={busy || detecting}
-            onPress={() => handlePick('library')}
+            onPress={uploadPhoto}
           />
         </View>
       ) : (
@@ -191,7 +235,7 @@ const styles = StyleSheet.create({
   h1Serif: { color: colors.yellow, fontFamily: fonts.serif, fontStyle: 'italic', fontSize: 34, lineHeight: 38 },
 
   viewfinder: {
-    height: 260,
+    height: 300,
     backgroundColor: colors.viewfinderA,
     borderWidth: 1,
     borderColor: colors.border,
@@ -204,6 +248,16 @@ const styles = StyleSheet.create({
   tr: { top: 10, right: 10, borderTopWidth: 2, borderRightWidth: 2 },
   bl: { bottom: 10, left: 10, borderBottomWidth: 2, borderLeftWidth: 2 },
   br: { bottom: 10, right: 10, borderBottomWidth: 2, borderRightWidth: 2 },
+
+  flip: {
+    position: 'absolute',
+    top: 12,
+    right: 40,
+    backgroundColor: 'rgba(10,10,8,0.6)',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+  },
+  flipText: { color: colors.ink, fontFamily: fonts.mono, fontSize: 10, letterSpacing: 1.4 },
 
   feedText: {
     color: colors.muted2,

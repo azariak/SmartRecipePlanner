@@ -39,6 +39,12 @@
           "photosPermission": "Forage lets you pick a photo of your ingredients to suggest recipes.",
           "cameraPermission": "Forage uses the camera to photograph the ingredients you have so it can suggest recipes."
         }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Forage uses the camera to photograph the ingredients you have so it can suggest recipes."
+        }
       ]
     ]
   }

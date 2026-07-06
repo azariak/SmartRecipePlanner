@@ -39,7 +39,13 @@ export function RecipeProvider({ children }: { children: React.ReactNode }) {
   // Every recipe name we've shown, so refresh never repeats one.
   const seenNames = useRef<Set<string>>(new Set());
 
-  const setPhoto = useCallback(async (next: Photo) => {
+  const setPhoto = useCallback(async (input: Photo) => {
+    // expo-camera on web returns base64 as a full "data:image/...;base64,XXX" URL,
+    // while native returns raw base64. Gemini's inline_data wants raw base64 only.
+    const rawBase64 = input.base64.startsWith('data:')
+      ? input.base64.slice(input.base64.indexOf(',') + 1)
+      : input.base64;
+    const next: Photo = { ...input, base64: rawBase64 };
     setPhotoState(next);
     setIngredients([]);
     setRecipes([]);
