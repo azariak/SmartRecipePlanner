@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { colors } from './src/theme';
 import type { RootStackParamList } from './src/types';
+import ErrorBoundary from './src/components/ErrorBoundary';
 import { RecipeProvider } from './src/state/RecipeStore';
 import { SavedRecipesProvider } from './src/state/SavedRecipesStore';
 import CaptureScreen from './src/screens/CaptureScreen';
@@ -29,7 +30,8 @@ const navTheme: Theme = {
 export default function App() {
   return (
     <SafeAreaProvider>
-      <SavedRecipesProvider>
+      <ErrorBoundary>
+        <SavedRecipesProvider>
         <RecipeProvider>
           <NavigationContainer theme={navTheme}>
             <StatusBar style="light" />
@@ -48,7 +50,8 @@ export default function App() {
             </Stack.Navigator>
           </NavigationContainer>
         </RecipeProvider>
-      </SavedRecipesProvider>
+        </SavedRecipesProvider>
+      </ErrorBoundary>
     </SafeAreaProvider>
   );
 }

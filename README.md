@@ -15,14 +15,12 @@ Built with **Expo / React Native** (TypeScript). Vision + recipe generation is p
 - 🍳 **5 structured recipes** — each with time, serves, difficulty, a pantry-match %,
   ingredients split into *in-fridge* vs *pantry/buy*, and numbered method steps.
 - 🔄 **Never-repeating refresh** — "5 new recipes" excludes everything already shown.
-- ⚡ **Instant loads** — the first batch is prefetched while you review the detected
-  ingredients, and the *next* refresh batch is preloaded in the background, so both
-  the list and refresh feel immediate.
 - 📄 **PDF export** — download any recipe as a clean, print-friendly card.
 - ⭐ **Save recipes** — star any recipe to keep it; saved recipes persist locally
   (AsyncStorage) and live under a **Saved** screen reachable from the home header.
-- 🎨 **Editorial dark UI** — implements the `Forage.dc.html` design; responsive
-  viewfinder that fills the space on wide screens.
+- ⚡ **Instant loads** — the first batch is prefetched while you review the detected
+ingredients, and the *next* refresh batch is preloaded in the background, so both
+the list and refresh feel immediate.
 
 ## Screens
 
@@ -64,6 +62,27 @@ EXPO_PUBLIC_GEMINI_API_KEY=your_key_here
   discards stale results after a retake).
 - `src/screens/` — `CaptureScreen`, `RecipeListScreen`, `RecipeDetailScreen`.
 - `src/theme.ts` — the design tokens (palette + fonts).
+
+## Testing & quality
+
+```bash
+npm test          # run the Jest suite (jest-expo)
+npm run typecheck # tsc --noEmit
+```
+
+The suite (28 tests) covers the pure, high-value logic:
+
+- **`gemini`** — response normalisation, de-dupe/cap of detected ingredients, match
+  clamping, and every error branch (missing key, 403/429, network, timeout/abort,
+  empty response, malformed JSON) with a mocked `fetch`.
+- **`recipeHtml`** — HTML escaping (XSS-safe) and PDF content.
+- **`savedLogic`** — save/unsave/parse behaviour of the saved-recipes store.
+- **`recipeMeta`** — the list metadata formatting.
+
+**Error handling** is centralised: all Gemini failures throw a typed `GeminiError`
+with a user-readable message (surfaced in the scan/list UI), requests are bounded by
+an `AbortController` timeout, and a top-level **`ErrorBoundary`** catches any render
+crash and offers a "Try again" instead of a blank screen.
 
 ## Deploy the web build to Cloudflare Pages
 

@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Recipe } from '../types';
+import { isRecipeSaved, parseSaved, removeFromSaved, toggleSaved } from './savedLogic';
 
 const STORAGE_KEY = 'forage.saved.v1';
 
@@ -26,10 +27,7 @@ export function SavedRecipesProvider({ children }: { children: React.ReactNode }
     (async () => {
       try {
         const raw = await AsyncStorage.getItem(STORAGE_KEY);
-        if (active && raw) {
-          const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed)) setSaved(parsed as Recipe[]);
-        }
+        if (active && raw) setSaved(parseSaved(raw));
       } catch {
         // ignore corrupt/missing storage — start empty
       } finally {
@@ -49,13 +47,12 @@ export function SavedRecipesProvider({ children }: { children: React.ReactNode }
     AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next)).catch(() => {});
   }, []);
 
-  const isSaved = useCallback((name: string) => saved.some((r) => r.name === name), [saved]);
+  const isSaved = useCallback((name: string) => isRecipeSaved(saved, name), [saved]);
 
   const toggleSave = useCallback(
     (recipe: Recipe) => {
       setSaved((prev) => {
-        const exists = prev.some((r) => r.name === recipe.name);
-        const next = exists ? prev.filter((r) => r.name !== recipe.name) : [recipe, ...prev];
+        const next = toggleSaved(prev, recipe);
         persist(next);
         return next;
       });
@@ -66,7 +63,7 @@ export function SavedRecipesProvider({ children }: { children: React.ReactNode }
   const removeSaved = useCallback(
     (name: string) => {
       setSaved((prev) => {
-        const next = prev.filter((r) => r.name !== name);
+        const next = removeFromSaved(prev, name);
         persist(next);
         return next;
       });
