@@ -1,16 +1,29 @@
-import React from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useState } from 'react';
+import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { colors, fonts } from '../theme';
 import type { RootStackParamList } from '../types';
-import { MonoLink, PrimaryButton } from '../components/ui';
+import { MonoLink, OutlineButton, PrimaryButton } from '../components/ui';
+import { exportRecipePdf } from '../services/recipePdf';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'RecipeDetail'>;
 
 export default function RecipeDetailScreen({ navigation, route }: Props) {
   const insets = useSafeAreaInsets();
   const { recipe } = route.params;
+  const [pdfBusy, setPdfBusy] = useState(false);
+
+  async function downloadPdf() {
+    try {
+      setPdfBusy(true);
+      await exportRecipePdf(recipe);
+    } catch (e: any) {
+      Alert.alert('Could not create PDF', e?.message ?? 'Please try again.');
+    } finally {
+      setPdfBusy(false);
+    }
+  }
 
   return (
     <ScrollView
@@ -81,7 +94,13 @@ export default function RecipeDetailScreen({ navigation, route }: Props) {
         <View style={styles.hair} />
       </View>
 
-      <View style={{ marginTop: 24 }}>
+      <View style={{ marginTop: 24, gap: 10 }}>
+        <OutlineButton
+          label="Download recipe"
+          glyph="↓ PDF"
+          loading={pdfBusy}
+          onPress={downloadPdf}
+        />
         <PrimaryButton label="Back to the list" glyph="←" onPress={() => navigation.goBack()} />
       </View>
     </ScrollView>

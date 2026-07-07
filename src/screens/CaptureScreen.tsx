@@ -7,6 +7,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -33,6 +34,11 @@ function guessMime(uri: string, provided?: string | null): string {
 export default function CaptureScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const isFocused = useIsFocused();
+  const { width: winW, height: winH } = useWindowDimensions();
+  // On wide (desktop/tablet) screens the viewfinder grows to fill the vertical
+  // space instead of sitting as a short strip. Mobile keeps the fixed 300px box.
+  const isWide = winW >= 700;
+  const viewfinderHeight = isWide ? Math.max(320, winH - 300) : 300;
   const { photo, detecting, detectError, ingredients, setPhoto, retake } = useRecipes();
   const [busy, setBusy] = useState(false);
   const [facing, setFacing] = useState<CameraType>('back');
@@ -122,7 +128,7 @@ export default function CaptureScreen({ navigation }: Props) {
       </View>
 
       {/* viewfinder */}
-      <View style={styles.viewfinder}>
+      <View style={[styles.viewfinder, { height: viewfinderHeight }]}>
         {showLiveCamera ? (
           <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing={facing} />
         ) : null}
@@ -235,7 +241,6 @@ const styles = StyleSheet.create({
   h1Serif: { color: colors.yellow, fontFamily: fonts.serif, fontStyle: 'italic', fontSize: 34, lineHeight: 38 },
 
   viewfinder: {
-    height: 300,
     backgroundColor: colors.viewfinderA,
     borderWidth: 1,
     borderColor: colors.border,
