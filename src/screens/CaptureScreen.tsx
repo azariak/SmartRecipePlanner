@@ -18,6 +18,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { colors, fonts } from '../theme';
 import type { RootStackParamList } from '../types';
 import { useRecipes } from '../state/RecipeStore';
+import { useSaved } from '../state/SavedRecipesStore';
 import { Logo, MonoLink, PrimaryButton } from '../components/ui';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Capture'>;
@@ -40,6 +41,7 @@ export default function CaptureScreen({ navigation }: Props) {
   const isWide = winW >= 700;
   const viewfinderHeight = isWide ? Math.max(320, winH - 300) : 300;
   const { photo, detecting, detectError, ingredients, setPhoto, retake } = useRecipes();
+  const { saved } = useSaved();
   const [busy, setBusy] = useState(false);
   const [facing, setFacing] = useState<CameraType>('back');
   const [permission, requestPermission] = useCameraPermissions();
@@ -119,6 +121,18 @@ export default function CaptureScreen({ navigation }: Props) {
       {/* header */}
       <View style={styles.header}>
         <Logo />
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="View saved recipes"
+          onPress={() => navigation.navigate('Saved')}
+          hitSlop={8}
+          style={({ pressed }) => [styles.savedBtn, pressed && { opacity: 0.6 }]}
+        >
+          <Text style={[styles.savedStar, saved.length > 0 && { color: colors.yellow }]}>
+            {saved.length > 0 ? '★' : '☆'}
+          </Text>
+          <Text style={styles.savedLabel}>SAVED{saved.length > 0 ? ` · ${saved.length}` : ''}</Text>
+        </Pressable>
       </View>
 
       {/* headline */}
@@ -235,6 +249,9 @@ export default function CaptureScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: { paddingHorizontal: 20, minHeight: '100%' },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10 },
+  savedBtn: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  savedStar: { color: colors.muted, fontSize: 15, lineHeight: 17 },
+  savedLabel: { color: colors.muted2, fontFamily: fonts.mono, fontSize: 11, letterSpacing: 1.4 },
 
   headline: { paddingTop: 6, paddingBottom: 16 },
   h1: { color: colors.ink, fontFamily: fonts.sans, fontSize: 32, fontWeight: '700', letterSpacing: -1, lineHeight: 34 },

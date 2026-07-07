@@ -34,4 +34,5 @@ export type RootStackParamList = {
   Capture: undefined;
   RecipeList: undefined;
   RecipeDetail: { recipe: Recipe };
+  Saved: undefined;
 };

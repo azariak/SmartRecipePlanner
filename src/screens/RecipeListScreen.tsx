@@ -1,38 +1,21 @@
 import React, { useEffect } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { colors, fonts } from '../theme';
-import { recipeMeta, type RootStackParamList, type Recipe } from '../types';
+import type { RootStackParamList } from '../types';
 import { useRecipes } from '../state/RecipeStore';
+import { useSaved } from '../state/SavedRecipesStore';
 import { MonoLink, OutlineButton } from '../components/ui';
+import RecipeRow from '../components/RecipeRow';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'RecipeList'>;
-
-function Row({ recipe, index, onPress }: { recipe: Recipe; index: number; onPress: () => void }) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={onPress}
-      style={({ pressed }) => [styles.row, pressed && { backgroundColor: colors.surface }]}
-    >
-      <Text style={styles.rowNum}>{String(index + 1).padStart(2, '0')}</Text>
-      <View style={styles.rowMid}>
-        <Text style={styles.rowName}>{recipe.name}</Text>
-        <Text style={styles.rowMeta}>{recipeMeta(recipe)}</Text>
-      </View>
-      <View style={styles.rowMatch}>
-        <Text style={styles.matchVal}>{recipe.match}%</Text>
-        <Text style={styles.matchLabel}>MATCH</Text>
-      </View>
-    </Pressable>
-  );
-}
 
 export default function RecipeListScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { ingredients, recipes, loadingRecipes, refreshing, recipeError, loadRecipes, refresh } =
     useRecipes();
+  const { isSaved, toggleSave } = useSaved();
 
   useEffect(() => {
     loadRecipes();
@@ -76,10 +59,12 @@ export default function RecipeListScreen({ navigation }: Props) {
         ) : (
           <View style={{ opacity: refreshing ? 0.4 : 1 }}>
             {recipes.map((r, i) => (
-              <Row
+              <RecipeRow
                 key={r.id}
                 recipe={r}
-                index={i}
+                index={i + 1}
+                saved={isSaved(r.name)}
+                onToggleSave={() => toggleSave(r)}
                 onPress={() => navigation.navigate('RecipeDetail', { recipe: r })}
               />
             ))}
@@ -113,21 +98,6 @@ const styles = StyleSheet.create({
   fromLine: { color: colors.muted3, fontFamily: fonts.mono, fontSize: 10, letterSpacing: 1.2, paddingBottom: 6, lineHeight: 16 },
 
   rows: { paddingHorizontal: 20, paddingBottom: 8 },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    paddingVertical: 18,
-  },
-  rowNum: { width: 34, color: colors.yellow, fontFamily: fonts.mono, fontSize: 12, paddingTop: 4 },
-  rowMid: { flex: 1, gap: 6 },
-  rowName: { color: colors.ink, fontFamily: fonts.sans, fontSize: 19, fontWeight: '700', letterSpacing: -0.4, lineHeight: 22 },
-  rowMeta: { color: colors.muted2, fontFamily: fonts.mono, fontSize: 10, letterSpacing: 1 },
-  rowMatch: { alignItems: 'flex-end', gap: 4, paddingTop: 3 },
-  matchVal: { color: colors.yellow, fontFamily: fonts.mono, fontSize: 13 },
-  matchLabel: { color: colors.muted4, fontFamily: fonts.mono, fontSize: 9, letterSpacing: 1.2 },
   hair: { borderTopWidth: 1, borderTopColor: colors.border },
 
   centerState: { alignItems: 'center', gap: 14, paddingTop: 60 },

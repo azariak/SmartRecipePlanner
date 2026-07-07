@@ -19,6 +19,8 @@ Built with **Expo / React Native** (TypeScript). Vision + recipe generation is p
   ingredients, and the *next* refresh batch is preloaded in the background, so both
   the list and refresh feel immediate.
 - 📄 **PDF export** — download any recipe as a clean, print-friendly card.
+- ⭐ **Save recipes** — star any recipe to keep it; saved recipes persist locally
+  (AsyncStorage) and live under a **Saved** screen reachable from the home header.
 - 🎨 **Editorial dark UI** — implements the `Forage.dc.html` design; responsive
   viewfinder that fills the space on wide screens.
 
