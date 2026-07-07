@@ -8,7 +8,7 @@ Built with **Expo / React Native** (TypeScript). Vision + recipe generation is p
 **Google Gemini**. Runs on iOS, Android, and the web from one codebase.
 
 ## Features
-
+ 
 - 📷 **Live camera viewfinder** — point at your ingredients (`expo-camera`, works on
   the web webcam too), or upload a photo instead.
 - 🔍 **Ingredient detection** — Gemini vision reads the photo and lists what it sees.
